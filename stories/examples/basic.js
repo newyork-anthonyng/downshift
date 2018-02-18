@@ -6,14 +6,36 @@ import Downshift from '../../src'
 class Examples extends Component {
   state = {
     selectedColor: '',
+    isOpen: false,
   }
 
+  items = ['Black', 'Red', 'Green', 'Blue', 'Orange', 'Purple']
+
   changeHandler = selectedColor => {
-    this.setState({selectedColor})
+    this.setState({
+      selectedColor,
+      isOpen: false
+    })
+  }
+
+  stateChangeHandler = (changes, stateChangeHelper) => {
+    // Duplicated logic. We could DRY this code up
+    const isOpen =
+      (changes.inputValue
+        ? matchSorter(this.items, changes.inputValue)
+        : this.items
+      ).length > 0
+
+    this.setState({
+      selectedColor: changes.inputValue || this.state.selectedColor,
+      isOpen,
+    })
   }
 
   render() {
-    const items = ['Black', 'Red', 'Green', 'Blue', 'Orange', 'Purple']
+    const { onSubmit } = this.props
+    const { selectedColor, isOpen } = this.state;
+
     return (
       <div>
         <Div
@@ -37,7 +59,14 @@ class Examples extends Component {
                   : 'transparent',
               }}
             />
-            <BasicAutocomplete items={items} onChange={this.changeHandler} />
+            <BasicAutocomplete
+              items={this.items}
+              onStateChange={this.stateChangeHandler}
+              onChange={this.changeHandler}
+              selectedItem={selectedColor}
+              isOpen={isOpen}
+              onSubmit={onSubmit}
+            />
           </Div>
         </Div>
       </div>
@@ -103,10 +132,20 @@ const Input = glamorous.input({
 function Root({innerRef, ...rest}) {
   return <div ref={innerRef} {...rest} />
 }
-function BasicAutocomplete({items, onChange}) {
+function BasicAutocomplete({
+  onSubmit,
+  items,
+  onChange,
+  selectedItem,
+  onStateChange,
+  isOpen,
+}) {
   return (
     <Downshift
       onChange={onChange}
+      onStateChange={onStateChange}
+      selectedItem={selectedItem}
+      isOpen={isOpen}
       render={({
         getInputProps,
         getItemProps,
@@ -119,7 +158,21 @@ function BasicAutocomplete({items, onChange}) {
       }) => (
         <Root {...getRootProps({refKey: 'innerRef'})}>
           <Label {...getLabelProps()}>What is your favorite color?</Label>
-          <Input {...getInputProps({placeholder: 'Enter color here'})} />
+          <Input
+            {...getInputProps({
+              placeholder: 'Enter color here',
+              onKeyDown: e => {
+                /*
+                 * When user is pressing Enter...
+                 * while the menu is open...
+                 * and they are not navigating the menu (nothing is highlighted)
+                 */
+                if (e.key === 'Enter' && isOpen && highlightedIndex === null) {
+                  onSubmit(e)
+                }
+              },
+            })}
+          />
           {isOpen && (
             <div
               style={{

@@ -10,7 +10,7 @@ class Examples extends Component {
   render() {
     return (
       <form onSubmit={this.handleSubmit}>
-        <Basic />
+        <Basic onSubmit={this.handleSubmit} />
         <input type="submit" value="Submit" />
       </form>
     )
